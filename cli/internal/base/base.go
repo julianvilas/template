@@ -8,7 +8,7 @@ import (
 )
 
 type Command struct {
-	Run       func(cmd *Command, args []string)
+	Run       func(cmd *Command, args []string) error
 	UsageLine string
 	Short     string
 	Long      string

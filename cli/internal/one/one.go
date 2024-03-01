@@ -23,6 +23,7 @@ func init() {
 	CmdOne.Flag.BoolVar(&exampleFlag, "f", false, "Example flag")
 }
 
-func runOne(cmd *base.Command, args []string) {
+func runOne(cmd *base.Command, args []string) error {
 	fmt.Printf("one! exampleFlag=%v\n", exampleFlag)
+	return nil
 }

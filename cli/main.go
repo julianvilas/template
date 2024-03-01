@@ -43,7 +43,10 @@ func main() {
 		if cmd.Name() == args[0] {
 			cmd.Flag.Parse(args[1:])
 			args = cmd.Flag.Args()
-			cmd.Run(cmd, args)
+			if err := cmd.Run(cmd, args); err != nil {
+				fmt.Fprintf(os.Stderr, "error: %v\n", err)
+				os.Exit(1)
+			}
 			return
 		}
 	}
