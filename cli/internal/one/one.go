@@ -7,7 +7,7 @@ import (
 )
 
 var CmdOne = &base.Command{
-	UsageLine: "one [-f]",
+	UsageLine: "cli one [-f]",
 	Short:     "short description for one",
 	Long: `
 Long description for one.

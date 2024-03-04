@@ -5,60 +5,76 @@ import (
 	"os"
 	"strings"
 	"text/template"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/jroimartin/template/cli/internal/base"
 )
 
 func Help(args []string) {
-	if len(args) == 0 {
-		PrintUsage()
-		return
-	}
-	if len(args) != 1 {
-		fmt.Fprintf(os.Stderr, "usage: cli help command\n\nToo many arguments given.\n")
+	cmd := base.CLI
+
+Args:
+	for i, arg := range args {
+		for _, sub := range cmd.Commands {
+			if sub.Name() == arg {
+				cmd = sub
+				continue Args
+			}
+		}
+
+		// helpSuccess is the help command using as many args as possible that
+		// would succeed.
+		helpSuccess := "cli help"
+		if i > 0 {
+			helpSuccess += " " + strings.Join(args[:i], " ")
+		}
+		fmt.Fprintf(os.Stderr, "cli help %s: unknown help topic. Run '%s'.\n", strings.Join(args, " "), helpSuccess)
 		os.Exit(2)
 	}
 
-	arg := args[0]
-
-	for _, cmd := range base.Commands {
-		if cmd.Name() == arg {
-			tmpl(helpTemplate, cmd)
-			return
-		}
+	if len(cmd.Commands) > 0 {
+		PrintUsage(cmd)
+	} else {
+		tmpl(helpTemplate, cmd)
 	}
-
-	fmt.Fprintf(os.Stderr, "Unknown help topic: %#q. Run 'cli help'.\n", arg)
-	os.Exit(2)
 }
 
-func PrintUsage() {
-	tmpl(usageTemplate, base.Commands)
+func PrintUsage(cmd *base.Command) {
+	tmpl(usageTemplate, cmd)
 }
 
-func tmpl(text string, data interface{}) {
+func capitalize(s string) string {
+	if s == "" {
+		return s
+	}
+	r, n := utf8.DecodeRuneInString(s)
+	return string(unicode.ToTitle(r)) + s[n:]
+}
+
+func tmpl(text string, data any) {
 	t := template.New("top")
-	t.Funcs(template.FuncMap{"trim": strings.TrimSpace})
+	t.Funcs(template.FuncMap{"trim": strings.TrimSpace, "capitalize": capitalize})
 	template.Must(t.Parse(text))
 	if err := t.Execute(os.Stderr, data); err != nil {
 		panic(err)
 	}
 }
 
-const usageTemplate = `cli is a minimal CLI application with commands
+const usageTemplate = `{{.Long | trim}}
 
 Usage:
 
-	cli command [arguments]
+	{{.UsageLine}} <command> [arguments]
 
 The commands are:
-{{range .}}
+{{range .Commands}}
 	{{.Name | printf "%-11s"}} {{.Short}}{{end}}
 
-Use "cli help [command]" for more information about a command.
+Use "cli help{{with .LongName}} {{.}}{{end}} <command>" for more information about a command.
 `
 
-const helpTemplate = `usage: cli {{.UsageLine}}
+const helpTemplate = `usage: {{.UsageLine}}
 
 {{.Long | trim}}
 `
